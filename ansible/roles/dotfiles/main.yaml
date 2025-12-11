@@ -1,0 +1,32 @@
+- name: Ensure dependencies
+  ansible.builtin.apt:
+    name:
+      - git
+      - stow
+    state: present
+    update_cache: yes
+
+- name: Clone dotfiles repository
+  ansible.builtin.git:
+    repo: "git@github.com/MrkMrk00/dotfiles"
+    dest: "{{ ansible_env.HOME }}/dotfiles"
+    version: master
+    update: yes
+    accept_hostkey: yes
+  become: false
+
+- name: Install GNU Stow
+  ansible.builtin.apt:
+    name: stow
+    state: present
+    update_cache: yes
+
+- name: Stow all dotfiles
+  ansible.builtin.shell: |
+    cd "{{ dotfiles_dest }}"
+    stow .
+  args:
+    executable: /bin/bash
+    chdir: "{{ dotfiles_dest }}"
+  become: false
+

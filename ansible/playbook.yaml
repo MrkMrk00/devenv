@@ -1,0 +1,16 @@
+- name: Provision Dev VM system tools
+  hosts: local
+  become: true
+  gather_facts: true
+  vars:
+    docker_version: "29.1.2"
+  roles:
+    - common
+    - docker
+
+- name: Provision Dev VM dev tools
+  hosts: local
+  become: true
+  gather_facts: true
+  roles:
+    - dotfiles
