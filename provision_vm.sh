@@ -10,13 +10,17 @@ CPUS=4
 DISK_SIZE=32
 RUN_ANSIBLE=0
 SSH_KEY_FILE=""
+SSH_PRIVATE_KEY_FILE=""
 VM_NAME=""
+IP=""
 
 usage() {
   cat <<EOF
-Usage: $0 -n <vmname> -k <ssh-public-key> [-m <memory MiB>] [-c <cpus>] [-d <disk GB>] [-a]
+Usage: $0 -n <vmname> -k <ssh-public-key> -p <private-ssh-key> -i <ip-octet> [-m <memory MiB>] [-c <cpus>] [-d <disk GB>] [-a]
   -n  VM name (required)
   -k  SSH public key file (required)
+  -p  SSH private key file (required)
+  -i  last octet of the static IP (required)
   -m  Memory in MiB (default ${MEMORY})
   -c  vCPUs (default ${CPUS})
   -d  Disk size in GB (default ${DISK_SIZE})
@@ -30,7 +34,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-while getopts "n:k:m:c:d:a" opt; do
+while getopts "i:p:n:k:m:c:d:a" opt; do
   case $opt in
     n) VM_NAME="$OPTARG" ;;
     k) SSH_KEY_FILE="$OPTARG" ;;
@@ -38,11 +42,13 @@ while getopts "n:k:m:c:d:a" opt; do
     c) CPUS="$OPTARG" ;;
     d) DISK_SIZE="$OPTARG" ;;
     a) RUN_ANSIBLE=1 ;;
+    p) SSH_PRIVATE_KEY_FILE="$OPTARG" ;;
+    i) IP="$OPTARG" ;;
     *) usage ;;
   esac
 done
 
-[[ -z "$VM_NAME" || -z "$SSH_KEY_FILE" ]] && usage
+[[ -z "$VM_NAME" || -z "$SSH_KEY_FILE" || -z "$SSH_PRIVATE_KEY_FILE" || -z "$IP" ]] && usage
 [[ ! -f "$SSH_KEY_FILE" ]] && { echo "SSH public key not found: $SSH_KEY_FILE" >&2; exit 2; }
 
 SSH_KEY=$(<"$SSH_KEY_FILE")
@@ -57,16 +63,7 @@ USERDATA="${TMPDIR}/user-data"
 METADATA="${TMPDIR}/meta-data"
 NETWORKDATA="${TMPDIR}/network-config.yaml"
 
-LAST_IP=$(virsh --connect qemu:///system net-dhcp-leases default \
-  | awk '/ipv4/ {print $5}' \
-  | cut -d/ -f1 \
-  | sort -t. -k4 -n \
-  | tail -n1)
-
-OCTET=$(echo "$LAST_IP" | cut -d. -f4)
-NEXT_OCTET=$((OCTET + 1))
-STATIC_IP="192.168.122.${NEXT_OCTET}"
-
+STATIC_IP="192.168.122.${IP}"
 echo "Static IP: $STATIC_IP"
 
 cat > "$NETWORKDATA" <<EOF
@@ -79,6 +76,8 @@ ethernets:
     nameservers:
       addresses: [8.8.8.8, 1.1.1.1]
 EOF
+
+SSH_PRIVATE_KEY=$(base64 -w0 "$SSH_PRIVATE_KEY_FILE")
 
 cat > "$USERDATA" <<EOF
 #cloud-config
@@ -98,10 +97,25 @@ ssh_pwauth: false
 package_update: true
 package_upgrade: true
 
+write_files:
+  - path: /tmp/id_ed25519
+    permissions: '0600'
+    encoding: b64
+    content: "${SSH_PRIVATE_KEY}"
+
 runcmd:
+  - mkdir -p /home/${USER}/.ssh
+  - mv /tmp/id_ed25519 /home/${USER}/.ssh/id_ed25519
+  - chown ${USER}:${USER} /home/${USER}/.ssh/id_ed25519
+  - ssh-keyscan -t rsa github.com >> /home/${USER}/.ssh/known_hosts
+
+  - chmod 700 /home/${USER}/.ssh
+  - chmod 600 /home/${USER}/.ssh/id_ed25519
+  - chmod 644 /home/${USER}/.ssh/known_hosts
+
   - apt-get update
   - apt-get upgrade -y
-  - apt-get install --no-install-recommends -y python3 ansible
+  - apt-get install --no-install-recommends -y python3 ansible git
 EOF
 
 cat > "$METADATA" <<EOF
