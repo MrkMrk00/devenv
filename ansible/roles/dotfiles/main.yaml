@@ -22,11 +22,8 @@
     update_cache: yes
 
 - name: Stow all dotfiles
-  ansible.builtin.shell: |
-    cd "{{ dotfiles_dest }}"
-    stow .
+  ansible.builtin.shell: stow .
   args:
     executable: /bin/bash
-    chdir: "{{ dotfiles_dest }}"
+    chdir: "{{ ansible_env.HOME }}/dotfiles"
   become: false
-

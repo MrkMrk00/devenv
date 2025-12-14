@@ -25,15 +25,11 @@
   ansible.builtin.apt:
     update_cache: yes
 
-- name: Set full Debian package version for Docker
-  ansible.builtin.set_fact:
-    docker_version_full: "5:{{ docker_version }}~3-0~debian-{{ ansible_lsb.codename }}"
-
 - name: Install Docker packages
   ansible.builtin.apt:
     name:
-      - "docker-ce={{ docker_version_full }}"
-      - "docker-ce-cli={{ docker_version_full }}"
+      - docker-ce
+      - docker-ce-cli
       - containerd.io
       - docker-compose-plugin
     state: present

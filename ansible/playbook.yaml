@@ -2,8 +2,6 @@
   hosts: local
   become: true
   gather_facts: true
-  vars:
-    docker_version: "29.1.2"
   roles:
     - common
     - docker
