@@ -8,7 +8,8 @@
 
 - name: Provision Dev VM dev tools
   hosts: local
-  become: true
+  become: false
   gather_facts: true
   roles:
+    - nvm
     - dotfiles

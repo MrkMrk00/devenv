@@ -1,4 +1,5 @@
 - name: Ensure dependencies
+  become: true
   ansible.builtin.apt:
     name:
       - git
@@ -14,12 +15,6 @@
     update: yes
     accept_hostkey: yes
   become: false
-
-- name: Install GNU Stow
-  ansible.builtin.apt:
-    name: stow
-    state: present
-    update_cache: yes
 
 - name: Stow all dotfiles
   ansible.builtin.shell: stow .
