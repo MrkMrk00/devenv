@@ -18,4 +18,5 @@
       - python3-pip
       - ca-certificates
       - curl
+      - awscli
     state: present
