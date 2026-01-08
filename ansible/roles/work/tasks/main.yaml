@@ -1,16 +1,19 @@
 - name: Ensure keyrings directory exists
-  file:
+  become: true
+  ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
     mode: '0755'
 
 - name: Download Doppler GPG key
+  become: true
   get_url:
     url: "https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key"
     dest: "/etc/apt/keyrings/doppler-archive-keyring.asc"
     mode: '0644'
 
 - name: Create Doppler source file (DEB822 format)
+  become: true
   copy:
     dest: "/etc/apt/sources.list.d/doppler-cli.sources"
     content: |
@@ -22,6 +25,7 @@
     mode: '0644'
 
 - name: Update apt and install doppler
+  become: true
   apt:
     name: doppler
     state: present
