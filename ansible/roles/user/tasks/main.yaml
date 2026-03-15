@@ -2,23 +2,31 @@
   become: true
   ansible.builtin.apt:
     name:
+      - zsh
       - git
       - stow
+      - fzf
+      - zoxide
+      - ripgrep
     state: present
     update_cache: yes
 
 - name: Clone dotfiles repository
   ansible.builtin.git:
-    repo: "git@github.com/MrkMrk00/dotfiles"
+    repo: "git@github.com:MrkMrk00/dotfiles"
     dest: "{{ ansible_env.HOME }}/dotfiles"
     version: master
-    update: yes
+    update: no
     accept_hostkey: yes
-  become: false
 
 - name: Stow all dotfiles
   ansible.builtin.shell: stow .
   args:
     executable: /bin/bash
     chdir: "{{ ansible_env.HOME }}/dotfiles"
-  become: false
+
+- name: Install fnm
+  ansible.builtin.include_tasks: ./fnm.yaml
+
+- name: Install opencode
+  ansible.builtin.include_tasks: ./opencode.yaml

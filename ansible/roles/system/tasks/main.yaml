@@ -1,0 +1,17 @@
+- name: Install basic packages
+  ansible.builtin.apt:
+    name:
+      - git
+      - curl
+      - vim
+      - python3
+      - python3-pip
+      - ca-certificates
+      - curl
+    state: latest
+
+- name: Install Docker
+  ansible.builtin.include_tasks: docker.yaml
+
+- name: Install Doppler
+  ansible.builtin.include_tasks: doppler.yaml

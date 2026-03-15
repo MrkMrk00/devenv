@@ -1,16 +1,13 @@
-- name: Provision Dev VM system tools
-  hosts: local
-  become: true
-  gather_facts: true
-  roles:
-    - common
-    - docker
+# - name: Provision Dev VM system tools
+#   become: true
+#   hosts: all
+#   gather_facts: true
+#   roles:
+#     - system
 
 - name: Provision Dev VM dev tools
-  hosts: local
+  hosts: all
   become: false
   gather_facts: true
   roles:
-    - nvm
-    - dotfiles
-    - work
+    - user

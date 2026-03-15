@@ -1,2 +1,4 @@
+.venv/
 *.qcow2
 /images/
+__pycache__

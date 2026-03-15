@@ -1,0 +1,39 @@
+- name: Install OpenCode globally
+  block:
+    - name: Check if opencode is already installed
+      ansible.builtin.stat:
+        path: "/usr/local/bin/opencode"
+      register: opencode_binary
+
+    - name: Provision OpenCode Binary
+      when: not opencode_binary.stat.exists
+      block:
+        - name: Download OpenCode archive
+          ansible.builtin.get_url:
+            url: "https://github.com/anomalyco/opencode/releases/download/v1.2.23/opencode-linux-x64.tar.gz"
+            dest: "/tmp/opencode.tar.gz"
+            checksum: "sha256:a7504c0713d6c3805a729fb6f4ab345521b0621d53f6d803feec1579f2ec2995"
+            mode: '0644'
+
+        - name: Extract binary directly to /usr/local/bin
+          ansible.builtin.unarchive:
+            src: "/tmp/opencode.tar.gz"
+            dest: "/usr/local/bin"
+            remote_src: true
+            extra_opts:
+              - "opencode"
+            creates: "/usr/local/bin/opencode"
+          become: true
+
+        - name: Ensure correct permissions and ownership
+          ansible.builtin.file:
+            path: "/usr/local/bin/opencode"
+            owner: root
+            group: root
+            mode: '0755'
+          become: true
+
+        - name: Cleanup temporary archive
+          ansible.builtin.file:
+            path: "/tmp/opencode.tar.gz"
+            state: absent
