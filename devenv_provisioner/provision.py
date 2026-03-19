@@ -1,5 +1,4 @@
 import os
-import time
 import platform
 import pathlib
 import argparse
@@ -20,37 +19,6 @@ class ProvisionVMCommand:
                    disk=disk,
                    cloud_init=cloud_init,
                    host_mount=share_dir)
-
-        vm_count = len(_get_all_vm_names()) - 1
-        ip = f'192.168.122.{100 + vm_count}'
-        ssh = shutil.which('ssh')
-        user = getpass.getuser()
-
-        print(f"==> Waiting for {ip} to accept SSH connections...")
-        while True:
-            res = subprocess.run(
-                (ssh,
-                 '-o', 'ConnectTimeout=2',
-                 '-o', 'UserKnownHostsFile=/dev/null',
-                 '-o', 'StrictHostKeyChecking=no',
-                 f'{user}@{ip}', 'cloud-init status --wait'),
-                capture_output=True)
-
-            if res.returncode == 0:
-                break
-
-            print('#', end='', flush=True)
-            time.sleep(2)
-
-        subprocess.run((
-            shutil.which('ansible-playbook'),
-            '-u', user,
-            '-i', f'{ip},',
-            '--ssh-extra-args', '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null',
-            './playbook.yaml'),
-            check=True,
-            cwd='/home/marek/workspace/devenv/ansible')
-
 
     def define_args(self, p: argparse.ArgumentParser):
         p.add_argument('name', type=str, help='VM name')

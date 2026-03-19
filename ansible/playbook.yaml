@@ -1,9 +1,9 @@
-# - name: Provision Dev VM system tools
-#   become: true
-#   hosts: all
-#   gather_facts: true
-#   roles:
-#     - system
+- name: Provision Dev VM system tools
+  become: true
+  hosts: all
+  gather_facts: true
+  roles:
+    - system
 
 - name: Provision Dev VM dev tools
   hosts: all
