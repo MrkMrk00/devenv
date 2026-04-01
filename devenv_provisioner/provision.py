@@ -1,4 +1,5 @@
 import os
+import enum
 import platform
 import pathlib
 import argparse
@@ -6,10 +7,19 @@ import shutil
 import subprocess
 import tempfile
 import getpass
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+log = logging.getLogger(__file__)
 
 class ProvisionVMCommand:
     def handle(self, args: argparse.Namespace):
-        vm_base_image = _download_vm_image()
+        vm_base_image = _download_vm_image(distro=args.distro)
         disk = _create_vm_disk(image=vm_base_image, vm_name=args.name)
         cloud_init = _create_cloud_init(vm_name=args.name)
         share_dir = _setup_virtiofs_share(args.name)
@@ -17,6 +27,7 @@ class ProvisionVMCommand:
                    memory=args.memory,
                    cpus=args.vcpus,
                    disk=disk,
+                   distro=args.distro,
                    cloud_init=cloud_init,
                    host_mount=share_dir)
 
@@ -30,7 +41,40 @@ class ProvisionVMCommand:
                        type=int,
                        default=4,
                        help='VCPUs to assign to the VM')
+        p.add_argument('--distro',
+                       type=Distro,
+                       default=Distro.DEBIAN_TRIXIE,
+                       choices=list(Distro))
 
+
+class Distro(enum.StrEnum):
+    DEBIAN_TRIXIE = 'debian' # 13
+    UBUNTU_NOBLE = 'ubuntu'  # 24.04
+
+    @property
+    def libvirt_os_string(self) -> str:
+        match self:
+            case Distro.DEBIAN_TRIXIE:
+                return 'debian13'
+            case Distro.UBUNTU_NOBLE:
+                return 'ubuntu24.04'
+
+    @property
+    def image_url(self) -> tuple[str, str]:
+        match self:
+            case Distro.DEBIAN_TRIXIE:
+                image_name = f'debian-13-generic-{_get_processor_architecture()}.qcow2'
+                return (
+                    image_name,
+                    f'https://cloud.debian.org/images/cloud/trixie/latest/{image_name}',
+                )
+
+            case Distro.UBUNTU_NOBLE:
+                image_name = f'noble-server-cloudimg-{_get_processor_architecture()}.img'
+                return (
+                    image_name,
+                    f'https://cloud-images.ubuntu.com/noble/current/{image_name}',
+                )
 
 def _get_data_dir() -> pathlib.Path:
     xdg_home = pathlib.Path(
@@ -53,28 +97,22 @@ def _get_processor_architecture():
 
     raise Exception(f'unsupported platform "{machine}"')
 
-def _download_vm_image():
-    image_name = f'debian-13-generic-{_get_processor_architecture()}.qcow2'
+def _download_vm_image(distro: Distro):
+    curl = shutil.which('curl')
+    if not curl:
+        raise Exception('curl not found')
+
     out_dir = _get_data_dir()
+    image_name, image_url = distro.image_url
 
     full_path = out_dir / image_name
     if full_path.exists():
         return full_path
 
-    curl = shutil.which('curl')
-    if not curl:
-        raise Exception('curl not found')
+    log.info(f'downloading distro image {image_name=}\n\n\n')
 
-    image_name = f'debian-13-generic-{_get_processor_architecture()}.qcow2'
-    out_dir = _get_data_dir()
-
-    print('=== downloading the VM base image')
-    print(f'Image name = {image_name}\n')
     subprocess.run(
-        (curl,
-         '--retry', '3',
-         '-SfLO',
-         f'https://cloud.debian.org/images/cloud/trixie/latest/{image_name}'),
+        (curl, '--retry', '3', '-SfL', image_url, '-o', image_name),
         cwd=out_dir,
         check=True,
     )
@@ -120,6 +158,9 @@ def _create_cloud_init(vm_name: str):
     starting_ip = 100
     vm_count = len(_get_all_vm_names())
 
+    # CZ.NIC DNS
+    nameservers = ['193.17.47.1', '185.43.135.1']
+
     with tempfile.TemporaryDirectory(prefix=f'{vm_name}-cloudinit', delete=False) as cinit_root:
         root = pathlib.Path(cinit_root)
         os.chmod(root, 0o755)
@@ -135,7 +176,7 @@ ethernets:
     addresses: [192.168.122.{starting_ip + vm_count}/24]
     gateway4: 192.168.122.1
     nameservers:
-      addresses: [8.8.8.8, 1.1.1.1]
+      addresses: [{",".join(nameservers)}]
 """)
 
         with open(root / 'meta-data', 'x') as metadata:
@@ -240,6 +281,7 @@ def _create_vm(vm_name: str,
                memory: int,
                cpus: int,
                disk: pathlib.Path,
+               distro: Distro,
                cloud_init: pathlib.Path,
                host_mount: pathlib.Path):
 
@@ -263,7 +305,7 @@ def _create_vm(vm_name: str,
         '--name', vm_name,
         '--memory', str(memory),
         '--vcpus', str(cpus),
-        '--os-variant', 'debian13',
+        '--os-variant', distro.libvirt_os_string,
         '--import',
         '--disk', f'path={str(disk.absolute())},format=qcow2',
         '--network', 'network=default,model=virtio',

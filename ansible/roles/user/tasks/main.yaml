@@ -8,6 +8,7 @@
       - fzf
       - zoxide
       - ripgrep
+      - unzip
     state: present
     update_cache: yes
 
