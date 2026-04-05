@@ -161,14 +161,13 @@ provision:
 
       apt-get install --no-install-recommends -y git vim python3.12-venv
 
-      chmod {{.User}}:{{.User}} /home/{{.User}}
-
   - mode: user
     script: |
       #!/bin/bash
       set -euxo pipefail
-
+      cd
       if ! [[ -d "./dotenv" ]]; then
+        rm ~/.zshrc ~/.bashrc
         git clone https://github.com/MrkMrk00/devenv --branch=ubuntu-and-lima
       else
         pushd devenv
@@ -183,7 +182,7 @@ provision:
       fi
       ./venv/bin/pip install ansible==13.5.0
 
-      ./venv/bin/ansible-playbook -i=localhost, -c=local ./playbook.yaml || true
+      ./venv/bin/ansible-playbook -i=localhost, -c=local ./playbook.yaml
 
 # # `boot` is executed directly by /bin/sh as part of cloud-init-local.service's early boot process,
 # # which is why there is no hash-bang specified in the example

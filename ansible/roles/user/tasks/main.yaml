@@ -31,3 +31,6 @@
 
 - name: Install opencode
   ansible.builtin.include_tasks: ./opencode.yaml
+
+- name: Install Kubernetes tools
+  ansible.builtin.include_tasks: ./k8s-tools.yaml
