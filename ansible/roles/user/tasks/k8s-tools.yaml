@@ -64,28 +64,6 @@
       remote_src: yes
     when: helmfile_dl.changed
 
-  - name: Install kubectl-validate
-    register: kubectl_validate_dl
-    get_url:
-      url: "https://github.com/kubernetes-sigs/kubectl-validate/releases/download/v0.0.4/kubectl-validate_linux_amd64.tar.gz"
-      dest: /tmp/kubernetes-validate.tar.gz
-      mode: '0755'
-      checksum: "sha256:f52d9a9b1c7c91c3d1f3e8a7b9b1c7c91c3d1f3e8a7b9b1c7c91c3d1f3e8a7b9"
-
-  - name: Unarchive kubectl-validate
-    unarchive:
-      src: "/tmp/kubernetes-validate.tar.gz"
-      dest: /tmp/
-      remote_src: yes
-    when: kubectl_validate_dl.changed
-
-  - name: Move kubectl-validate binary to path
-    copy:
-      src: "/tmp/kubectl-validate"
-      dest: /usr/local/bin/kubectl-validate
-      mode: '0755'
-    when: kubectl_validate_dl.changed
-
   - name: Install K3d (K3s in Docker)
     ansible.builtin.get_url:
       url: "https://github.com/k3d-io/k3d/releases/download/v5.8.3/k3d-linux-amd64"
