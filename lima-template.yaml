@@ -54,7 +54,7 @@ disk: null
 #    Until Lima v1.2, /tmp/lima was mounted too as writable.
 mounts:
   - location: "~/.local/share/devenv_provisiner/virtiofs/{{ .Name }}/"
-    mountPoint: "/home/{{ .User }}/workspace"
+    mountPoint: "{{.Home}}/workspace"
     writable: true
 #  9p:
 #    # Supported security models are "passthrough", "mapped-xattr", "mapped-file" and "none".
@@ -329,7 +329,7 @@ user:
   # Home directory inside the VM, NOT the mounted home directory of the host.
   # It can use the following template variables: {{.Name}}, {{.Hostname}}, {{.UID}}, {{.User}}, and {{.Param.Key}}.
   # 🟢 Builtin default: "/home/{{.User}}.guest" (Also accessible as "/home/{{.User}}.linux")
-  home: null
+  home: "/home/{{.User}}"
   # Shell. Needs to be an absolute path.
   # 🟢 Builtin default: "/bin/bash"
   shell: null
