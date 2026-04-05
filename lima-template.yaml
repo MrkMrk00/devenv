@@ -166,8 +166,7 @@ provision:
       #!/bin/bash
       set -euxo pipefail
 
-      cd '{{.Home}}'
-
+      cd
       if ! [[ -d "./devenv" ]]; then
         rm ~/.zshrc ~/.bashrc
         git clone https://github.com/MrkMrk00/devenv --branch=ubuntu-and-lima

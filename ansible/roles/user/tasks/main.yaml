@@ -27,8 +27,9 @@
     chdir: "{{ ansible_env.HOME }}/dotfiles"
 
 - name: Setup ZSH and add user to Docker group
+  become: true
   ansible.builtin.user:
-    name: '{{ user }}'
+    name: '{{ ansible_user_id }}'
     groups: docker
     shell: /usr/bin/zsh
     append: true
