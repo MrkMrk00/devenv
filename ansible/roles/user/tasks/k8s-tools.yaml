@@ -52,7 +52,7 @@
 
   - name: Install helmfile
     get_url:
-      url: "https://github.com/helmfile/helmfile/releases/download/v1.4.3/helmfile_1.4.3_linux_arm64.tar.gz"
+      url: "https://github.com/helmfile/helmfile/releases/download/v1.4.3/helmfile_1.4.3_linux_amd64.tar.gz"
       dest: "/tmp/helmfile.tar.gz"
       checksum: "sha256:08e1926f248031e3dc553bdadb17c44fc8efecdc0ac50c07fa194a293ddefc59"
     register: helmfile_dl
@@ -85,3 +85,11 @@
       dest: /usr/local/bin/kubectl-validate
       mode: '0755'
     when: kubectl_validate_dl.changed
+
+  - name: Install K3d (K3s in Docker)
+    ansible.builtin.get_url:
+      url: "https://github.com/k3d-io/k3d/releases/download/v5.8.3/k3d-linux-amd64"
+      dest: /usr/local/bin/k3d
+      mode: '0755'
+      checksum: "sha256:dbaa79a76ace7f4ca230a1ff41dc7d8a5036a8ad0309e9c54f9bf3836dbe853e"
+
