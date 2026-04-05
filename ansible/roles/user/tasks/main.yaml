@@ -26,6 +26,13 @@
     executable: /bin/bash
     chdir: "{{ ansible_env.HOME }}/dotfiles"
 
+- name: Setup ZSH and add user to Docker group
+  ansible.builtin.user:
+    name: '{{ user }}'
+    groups: docker
+    shell: /usr/bin/zsh
+    append: true
+
 - name: Install fnm
   ansible.builtin.include_tasks: ./fnm.yaml
 

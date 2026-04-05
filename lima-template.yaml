@@ -165,8 +165,10 @@ provision:
     script: |
       #!/bin/bash
       set -euxo pipefail
-      cd
-      if ! [[ -d "./dotenv" ]]; then
+
+      cd '{{.Home}}'
+
+      if ! [[ -d "./devenv" ]]; then
         rm ~/.zshrc ~/.bashrc
         git clone https://github.com/MrkMrk00/devenv --branch=ubuntu-and-lima
       else
