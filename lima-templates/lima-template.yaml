@@ -1,75 +1,11 @@
-# ===================================================================== #
-# BASIC CONFIGURATION
-# ===================================================================== #
-
-# Default values in this YAML file are specified by `null` instead of Lima's "builtin default" values,
-# so they can be overridden by the $LIMA_HOME/_config/default.yaml mechanism documented at the end of this file.
-
-# VM type: "qemu", "vz" (on macOS 13 and later), or "default".
-# The vmType can be specified only on creating the instance.
-# The vmType of existing instances cannot be changed.
-# 🟢 Builtin default: "vz" (on macOS 13.5 and later), "qemu" (on others)
-vmType: null
-
-# Arch: "default", "x86_64", "aarch64".
-# 🟢 Builtin default: "default" (corresponds to the host architecture)
-arch: null
-
-
-# OpenStack-compatible disk image.
-# Each image has a `location` URL for the disk image, an `arch` setting, and an optional `digest`.
-# To specify a custom kernel and initial RAM disk, nest `kernel` and `initrd` under an image entry:
-#   - location: "https://example.com/image.qcow2"
-#     # kernel specifies a custom kernel to boot.
-#     kernel:
-#       location: "https://example.com/vmlinuz"
-#       digest: "sha256:..."
-#       cmdline: "console=ttyS0 root=/dev/sda1"
-#     # initrd specifies a custom initial RAM disk.
-#     initrd:
-#       location: "https://example.com/initrd.img"
-#       digest: "sha256:..."
-# 🟢 Builtin default: none (must be specified)
-# 🔵 This file: Ubuntu images (inherited via the `base` mechanism later in this file)
 images: []
-
-# CPUs
-# 🟢 Builtin default: min(4, host CPU cores)
 cpus: 8
-
-# Memory size
-# 🟢 Builtin default: min("4GiB", half of host memory)
 memory: "16GiB"
-
-# Disk size
-# 🟢 Builtin default: "100GiB"
+# "100GiB"
 disk: null
 
-mountInotify: true
+mounts: []
 
-# Expose host directories to the guest, the mount point might be accessible from all UIDs in the guest
-# "location" can use these template variables: {{.Home}}, {{.Dir}}, {{.Name}}, {{.UID}}, {{.User}}, {{.Param.Key}},
-# {{.GlobalTempDir}}, and {{.TempDir}}. The global temp dir is always "/tmp" on Unix.
-# "mountPoint" can use these template variables: {{.Home}}, {{.Name}}, {{.Hostname}}, {{.UID}}, {{.User}}, and {{.Param.Key}}.
-# 🟢 Builtin default: [] (Mount nothing)
-# 🔵 This file: Mount the home as read-only (inherited via the `base` mechanism later in this file)
-#    Until Lima v1.2, /tmp/lima was mounted too as writable.
-mounts:
-  - location: "~/.local/share/devenv_provisiner/virtiofs/{{ .Name }}/"
-    mountPoint: "{{.Home}}/workspace"
-    writable: true
-
-mountType: virtiofs
-
-# ===================================================================== #
-# ADVANCED CONFIGURATION
-# ===================================================================== #
-
-# Lima disks to attach to the instance. The disks will be accessible from inside the
-# instance, labeled by name. (e.g. if the disk is named "data", it will be labeled
-# "lima-data" inside the instance). The disk will be mounted inside the instance at
-# `/mnt/lima-${VOLUME}`.
-# 🟢 Builtin default: []
 additionalDisks:
 # disks should either be a list of disk name strings, for example:
 # - "data"
@@ -139,7 +75,7 @@ provision:
       cd
       if ! [[ -d "./devenv" ]]; then
         rm ~/.zshrc ~/.bashrc
-        git clone https://github.com/MrkMrk00/devenv --branch=ubuntu-and-lima
+        git clone https://github.com/MrkMrk00/devenv
       else
         pushd devenv
           git fetch origin HEAD
@@ -154,15 +90,6 @@ provision:
       ./venv/bin/pip install ansible==13.5.0
 
       ./venv/bin/ansible-playbook -i=localhost, -c=local ./playbook.yaml
-
-  - mode: data
-    path: /etc/security/limits.conf.d/10-max-files.conf
-    content: |
-      {{.User}}   hard    nofile   65535
-      {{.User}}   soft    nofile   65535
-    owner: "root:root"
-    permissions: 644
-    overwrite: false
 
 # # `boot` is executed directly by /bin/sh as part of cloud-init-local.service's early boot process,
 # # which is why there is no hash-bang specified in the example

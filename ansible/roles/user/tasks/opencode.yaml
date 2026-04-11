@@ -1,8 +1,13 @@
 - name: Install OpenCode globally
+  when: opencode_version is not none
   block:
+    - name: Set OpenCode archive name
+      ansible.builtin.set_fact:
+        opencode_archive: "opencode-linux-{{ (ansible_architecture == 'x86_64') | ternary('x64', 'arm64') }}.tar.gz"
+
     - name: Check if opencode is already installed
       ansible.builtin.stat:
-        path: "/usr/local/bin/opencode"
+        path: /usr/local/bin/opencode
       register: opencode_binary
 
     - name: Provision OpenCode Binary
@@ -10,30 +15,34 @@
       block:
         - name: Download OpenCode archive
           ansible.builtin.get_url:
-            url: "https://github.com/anomalyco/opencode/releases/download/v1.2.23/opencode-linux-x64.tar.gz"
-            dest: "/tmp/opencode.tar.gz"
-            checksum: "sha256:a7504c0713d6c3805a729fb6f4ab345521b0621d53f6d803feec1579f2ec2995"
-            mode: '0644'
+            url: "https://github.com/anomalyco/opencode/releases/download/v{{ opencode_version }}/{{ opencode_archive }}"
+            dest: "/tmp/{{ opencode_archive }}"
+            mode: "0644"
+
+        - name: Verify OpenCode checksum
+          ansible.builtin.shell: echo "{{ opencode_checksums }}" | grep '{{ opencode_archive }}' | sha256sum -c
+          args:
+            chdir: /tmp
 
         - name: Extract binary directly to /usr/local/bin
+          become: true
           ansible.builtin.unarchive:
-            src: "/tmp/opencode.tar.gz"
-            dest: "/usr/local/bin"
+            src: "/tmp/{{ opencode_archive }}"
+            dest: /usr/local/bin
             remote_src: true
             extra_opts:
               - "opencode"
-            creates: "/usr/local/bin/opencode"
-          become: true
+            creates: /usr/local/bin/opencode
 
         - name: Ensure correct permissions and ownership
+          become: true
           ansible.builtin.file:
-            path: "/usr/local/bin/opencode"
+            path: /usr/local/bin/opencode
             owner: root
             group: root
-            mode: '0755'
-          become: true
+            mode: "0755"
 
         - name: Cleanup temporary archive
           ansible.builtin.file:
-            path: "/tmp/opencode.tar.gz"
+            path: "/tmp/{{ opencode_archive }}"
             state: absent

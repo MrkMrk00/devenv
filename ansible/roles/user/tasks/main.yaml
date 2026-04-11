@@ -34,6 +34,12 @@
     shell: /usr/bin/zsh
     append: true
 
+- name: Install Neovim
+  ansible.builtin.include_tasks: ./neovim.yaml
+
+- name: Install Nix
+  ansible.builtin.include_tasks: ./nix.yaml
+
 - name: Install fnm
   ansible.builtin.include_tasks: ./fnm.yaml
 

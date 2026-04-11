@@ -2,6 +2,8 @@
   become: true
   hosts: all
   gather_facts: true
+  vars_files:
+    - vars/versions.yaml
   roles:
     - system
 
@@ -9,5 +11,7 @@
   hosts: all
   become: false
   gather_facts: true
+  vars_files:
+    - vars/versions.yaml
   roles:
     - user

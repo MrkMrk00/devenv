@@ -5,6 +5,8 @@
       - curl
       - vim
       - ca-certificates
+      - sudo
+      - xz-utils
     state: present
 
 - name: Install Docker

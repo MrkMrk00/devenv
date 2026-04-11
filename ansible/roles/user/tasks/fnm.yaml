@@ -1,8 +1,13 @@
 - name: Install fnm globally
+  when: fnm_version is not none
   block:
+    - name: Set fnm archive name
+      ansible.builtin.set_fact:
+        fnm_archive: "{{ (ansible_architecture == 'x86_64') | ternary('fnm-linux.zip', 'fnm-arm64.zip') }}"
+
     - name: Check if fnm is already installed
       ansible.builtin.stat:
-        path: "/usr/local/bin/fnm"
+        path: /usr/local/bin/fnm
       register: fnm_binary
 
     - name: Provision fnm
@@ -10,29 +15,32 @@
       block:
         - name: Download fnm archive
           ansible.builtin.get_url:
-            url: "https://github.com/Schniz/fnm/releases/download/v1.39.0/fnm-linux.zip"
-            dest: "/tmp/fnm-linux.zip"
-            checksum: "sha256:7807664f39d39fc518da1c35ba0181e4b3267603c4b1dedeb4b5fc6ae440a224"
-            mode: '0644'
+            url: "https://github.com/Schniz/fnm/releases/download/v{{ fnm_version }}/{{ fnm_archive }}"
+            dest: "/tmp/{{ fnm_archive }}"
+            mode: "0644"
+
+        - name: Verify fnm checksum
+          ansible.builtin.shell: echo "{{ fnm_checksums }}" | grep '{{ fnm_archive }}' | sha256sum -c
+          args:
+            chdir: /tmp
 
         - name: Extract fnm binary to /usr/local/bin
-          ansible.builtin.unarchive:
-            src: "/tmp/fnm-linux.zip"
-            dest: "/usr/local/bin"
-            remote_src: true
-            creates: "/usr/local/bin/fnm"
           become: true
+          ansible.builtin.unarchive:
+            src: "/tmp/{{ fnm_archive }}"
+            dest: /usr/local/bin
+            remote_src: true
+            creates: /usr/local/bin/fnm
 
         - name: Ensure correct permissions
+          become: true
           ansible.builtin.file:
-            path: "/usr/local/bin/fnm"
+            path: /usr/local/bin/fnm
             owner: root
             group: root
-            mode: '0755'
-          become: true
+            mode: "0755"
 
         - name: Cleanup temporary zip
           ansible.builtin.file:
-            path: "/tmp/fnm-linux.zip"
+            path: "/tmp/{{ fnm_archive }}"
             state: absent
-

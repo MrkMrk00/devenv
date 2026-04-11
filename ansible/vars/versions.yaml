@@ -1,0 +1,42 @@
+nvim_version: "0.12.1"
+nvim_checksums: |
+  ab757a1fd9ad307d53d2df4045698906a7ca3993d92260dd8fe49108712d57d0  nvim-linux-x86_64.tar.gz
+  FIXME_FILL_IN_AARCH64_CHECKSUM  nvim-linux-aarch64.tar.gz
+
+fnm_version: "1.39.0"
+fnm_checksums: |
+  7807664f39d39fc518da1c35ba0181e4b3267603c4b1dedeb4b5fc6ae440a224  fnm-linux.zip
+  FIXME_FILL_IN_AARCH64_CHECKSUM  fnm-arm64.zip
+
+opencode_version: "1.2.23"
+opencode_checksums: |
+  a7504c0713d6c3805a729fb6f4ab345521b0621d53f6d803feec1579f2ec2995  opencode-linux-x64.tar.gz
+  FIXME_FILL_IN_AARCH64_CHECKSUM  opencode-linux-arm64.tar.gz
+
+kubectl_version: "1.35.3"
+kubectl_checksums: |
+  fd31c7d7129260e608f6faf92d5984c3267ad0b5ead3bced2fe125686e286ad6  kubectl-amd64
+  FIXME_FILL_IN_AARCH64_CHECKSUM  kubectl-arm64
+
+kustomize_version: "5.8.1"
+kustomize_checksums: |
+  029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d  kustomize_v5.8.1_linux_amd64.tar.gz
+  FIXME_FILL_IN_AARCH64_CHECKSUM  kustomize_v5.8.1_linux_arm64.tar.gz
+
+helm_version: "3.20.1"
+helm_checksums: |
+  0165ee4a2db012cc657381001e593e981f42aa5707acdd50658326790c9d0dc3  helm-v3.20.1-linux-amd64.tar.gz
+  FIXME_FILL_IN_AARCH64_CHECKSUM  helm-v3.20.1-linux-arm64.tar.gz
+
+helmfile_version: "1.4.3"
+helmfile_checksums: |
+  08e1926f248031e3dc553bdadb17c44fc8efecdc0ac50c07fa194a293ddefc59  helmfile_1.4.3_linux_amd64.tar.gz
+  FIXME_FILL_IN_AARCH64_CHECKSUM  helmfile_1.4.3_linux_arm64.tar.gz
+
+k3d_version: "5.8.3"
+k3d_checksums: |
+  dbaa79a76ace7f4ca230a1ff41dc7d8a5036a8ad0309e9c54f9bf3836dbe853e  k3d-linux-amd64
+  FIXME_FILL_IN_AARCH64_CHECKSUM  k3d-linux-arm64
+
+# Set to false to skip Nix installation entirely
+nix_install: true
