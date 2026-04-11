@@ -8,12 +8,13 @@
       - fzf
       - zoxide
       - ripgrep
+      - unzip
     state: present
     update_cache: yes
 
 - name: Clone dotfiles repository
   ansible.builtin.git:
-    repo: "git@github.com:MrkMrk00/dotfiles"
+    repo: "https://github.com/MrkMrk00/dotfiles"
     dest: "{{ ansible_env.HOME }}/dotfiles"
     version: master
     update: no
@@ -25,8 +26,19 @@
     executable: /bin/bash
     chdir: "{{ ansible_env.HOME }}/dotfiles"
 
+- name: Setup ZSH and add user to Docker group
+  become: true
+  ansible.builtin.user:
+    name: '{{ ansible_user_id }}'
+    groups: docker
+    shell: /usr/bin/zsh
+    append: true
+
 - name: Install fnm
   ansible.builtin.include_tasks: ./fnm.yaml
 
 - name: Install opencode
   ansible.builtin.include_tasks: ./opencode.yaml
+
+- name: Install Kubernetes tools
+  ansible.builtin.include_tasks: ./k8s-tools.yaml

@@ -1,0 +1,73 @@
+- name: Provision K8s tools
+  become: true
+  block:
+  - name: Ensure /usr/local/bin exists
+    file:
+      path: /usr/local/bin
+      state: directory
+      mode: '0755'
+
+  - name: Install kubectl
+    get_url:
+      url: "https://dl.k8s.io/release/v1.35.3/bin/linux/amd64/kubectl"
+      dest: /usr/local/bin/kubectl
+      mode: '0755'
+      checksum: "sha256:fd31c7d7129260e608f6faf92d5984c3267ad0b5ead3bced2fe125686e286ad6"
+
+  - name: Install kustomize
+    get_url:
+      url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz"
+      dest: "/tmp/kustomize.tar.gz"
+      checksum: "sha256:029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d"
+    register: kustomize_dl
+
+  - name: Unarchive kustomize
+    unarchive:
+      src: "/tmp/kustomize.tar.gz"
+      dest: /usr/local/bin/
+      remote_src: yes
+    when: kustomize_dl.changed
+
+  - name: Install Helm
+    get_url:
+      url: "https://get.helm.sh/helm-v3.20.1-linux-amd64.tar.gz"
+      dest: "/tmp/helm.tar.gz"
+      checksum: "sha256:0165ee4a2db012cc657381001e593e981f42aa5707acdd50658326790c9d0dc3"
+    register: helm_dl
+
+  - name: Unarchive Helm
+    unarchive:
+      src: "/tmp/helm.tar.gz"
+      dest: /tmp/
+      remote_src: yes
+    when: helm_dl.changed
+
+  - name: Move Helm binary to path
+    copy:
+      src: "/tmp/linux-amd64/helm"
+      dest: /usr/local/bin/helm
+      mode: '0755'
+      remote_src: yes
+    when: helm_dl.changed
+
+  - name: Install helmfile
+    get_url:
+      url: "https://github.com/helmfile/helmfile/releases/download/v1.4.3/helmfile_1.4.3_linux_amd64.tar.gz"
+      dest: "/tmp/helmfile.tar.gz"
+      checksum: "sha256:08e1926f248031e3dc553bdadb17c44fc8efecdc0ac50c07fa194a293ddefc59"
+    register: helmfile_dl
+
+  - name: Unarchive helmfile
+    unarchive:
+      src: "/tmp/helmfile.tar.gz"
+      dest: /usr/local/bin/
+      remote_src: yes
+    when: helmfile_dl.changed
+
+  - name: Install K3d (K3s in Docker)
+    ansible.builtin.get_url:
+      url: "https://github.com/k3d-io/k3d/releases/download/v5.8.3/k3d-linux-amd64"
+      dest: /usr/local/bin/k3d
+      mode: '0755'
+      checksum: "sha256:dbaa79a76ace7f4ca230a1ff41dc7d8a5036a8ad0309e9c54f9bf3836dbe853e"
+
