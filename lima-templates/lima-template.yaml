@@ -65,7 +65,25 @@ provision:
       set -euxo pipefail
       export DEBIAN_FRONTEND=noninteractive
 
-      apt-get install --no-install-recommends -y git vim python3.12-venv
+      apt-get update
+      apt-get install --no-install-recommends -y \
+        git curl vim ca-certificates sudo xz-utils \
+        zsh stow fzf zoxide ripgrep unzip
+
+      install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+      chmod a+r /etc/apt/keyrings/docker.asc
+
+      ARCH="$(dpkg --print-architecture)"
+      RELEASE="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+      echo "deb [arch=${ARCH} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${RELEASE} stable" \
+        > /etc/apt/sources.list.d/docker.list
+
+      apt-get update
+      apt-get install --no-install-recommends -y \
+        docker-ce docker-ce-cli containerd.io \
+        docker-buildx-plugin docker-compose-plugin
+
 
   - mode: user
     script: |
@@ -73,8 +91,15 @@ provision:
       set -euxo pipefail
 
       cd
+      if ! [[ -d "./dotfiles" ]]; then
+        git clone https://github.com/MrkMrk00/dotfiles --depth=1
+        rm -f ~/.zshrc ~/.bashrc
+        pushd dotfiles
+          stow .
+        popd
+      fi
+
       if ! [[ -d "./devenv" ]]; then
-        rm ~/.zshrc ~/.bashrc
         git clone https://github.com/MrkMrk00/devenv
       else
         pushd devenv
@@ -82,14 +107,18 @@ provision:
           git checkout -d FETCH_HEAD
         popd
       fi
-      pushd devenv/ansible
 
-      if ! [[ -d "venv" ]]; then
-        python3 -m venv venv
+      if ! [[ -d /nix ]]; then
+        sh <(curl -L https://nixos.org/nix/install) --daemon --yes
+        sudo mkdir -p /etc/nix
+        echo "experimental-features = nix-command flakes" > /etc/nix/nix.conf
       fi
-      ./venv/bin/pip install ansible==13.5.0
 
-      ./venv/bin/ansible-playbook -i=localhost, -c=local ./playbook.yaml
+      . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+      nix profile install ~/devenv
+
+      sudo usermod -aG docker "$(whoami)"
+      sudo chsh -s /usr/bin/zsh "$(whoami)"
 
 # # `boot` is executed directly by /bin/sh as part of cloud-init-local.service's early boot process,
 # # which is why there is no hash-bang specified in the example
