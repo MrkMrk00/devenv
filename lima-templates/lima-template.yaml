@@ -45,6 +45,8 @@ memory: "16GiB"
 # 🟢 Builtin default: "100GiB"
 disk: null
 
+mountInotify: true
+
 # Expose host directories to the guest, the mount point might be accessible from all UIDs in the guest
 # "location" can use these template variables: {{.Home}}, {{.Dir}}, {{.Name}}, {{.UID}}, {{.User}}, {{.Param.Key}},
 # {{.GlobalTempDir}}, and {{.TempDir}}. The global temp dir is always "/tmp" on Unix.
@@ -56,40 +58,8 @@ mounts:
   - location: "~/.local/share/devenv_provisiner/virtiofs/{{ .Name }}/"
     mountPoint: "{{.Home}}/workspace"
     writable: true
-#  9p:
-#    # Supported security models are "passthrough", "mapped-xattr", "mapped-file" and "none".
-#    # "mapped-xattr" and "mapped-file" are useful for persistent chown but incompatible with symlinks.
-#    # 🟢 Builtin default: "none" (since Lima v0.13)
-#    securityModel: null
-#    # Select 9P protocol version. Valid options are: "9p2000" (legacy), "9p2000.u", "9p2000.L".
-#    # 🟢 Builtin default: "9p2000.L"
-#    protocolVersion: null
-#    # The number of bytes to use for 9p packet payload, where 4KiB is the absolute minimum.
-#    # 🟢 Builtin default: "128KiB"
-#    msize: null
-#    # Specifies a caching policy. Valid options are: "none", "loose", "fscache" and "mmap".
-#    # Try choosing "mmap" or "none" if you see a stability issue with the default "fscache".
-#    # See https://www.kernel.org/doc/Documentation/filesystems/9p.txt
-#    # 🟢 Builtin default: "fscache" for non-writable mounts, "mmap" for writable mounts
-#    cache: null
 
-# List of mount types not supported by the kernel of this distro.
-# Also used to resolve the default mount type when not explicitly specified.
-#
-# NOTE: 9p is broken in Linux v6.9, v6.10, and v6.11.
-# The issue was fixed in Linux v6.12-rc5 (https://github.com/torvalds/linux/commit/be2ca38).
-#
-# 🟢 Builtin default: []
-mountTypesUnsupported: null
-
-# Mount type for above mounts, such as "reverse-sshfs" (from sshocker), "9p" (QEMU’s virtio-9p-pci, aka virtfs),
-# or "virtiofs" (experimental on Linux; needs `vmType: vz` on macOS).
-# 🟢 Builtin default: "default" (resolved to be "9p" for QEMU since Lima v1.0 on non-Windows, "virtiofs" for vz)
-mountType: 9p
-
-# Enable inotify support for mounted directories (EXPERIMENTAL)
-# 🟢 Builtin default: Disabled by default
-mountInotify: null
+mountType: virtiofs
 
 # ===================================================================== #
 # ADVANCED CONFIGURATION
@@ -184,6 +154,15 @@ provision:
       ./venv/bin/pip install ansible==13.5.0
 
       ./venv/bin/ansible-playbook -i=localhost, -c=local ./playbook.yaml
+
+  - mode: data
+    path: /etc/security/limits.conf.d/10-max-files.conf
+    content: |
+      {{.User}}   hard    nofile   65535
+      {{.User}}   soft    nofile   65535
+    owner: "root:root"
+    permissions: 644
+    overwrite: false
 
 # # `boot` is executed directly by /bin/sh as part of cloud-init-local.service's early boot process,
 # # which is why there is no hash-bang specified in the example
@@ -563,38 +542,6 @@ hostResolver:
   #   guest.name: 127.1.1.1
   #   host.name: host.lima.internal
 
-# If hostResolver.enabled is false, then the following rules apply for configuring dns:
-# Explicitly set DNS addresses for qemu user-mode networking. By default, qemu picks *one*
-# nameserver from the host config and forwards all queries to this server. On macOS
-# Lima adds the nameservers configured for the first host interface in service order,
-# that has an IPv4 address, to the list. In case this still doesn't work (e.g. VPN
-# setups), the servers can be specified here explicitly. If nameservers are specified
-# here, then the configuration from network preferences will be ignored.
-# 🟢 Builtin default: []
-# dns:
-# - 1.1.1.1
-# - 1.0.0.1
-
-# Prefix to use for installing guest agent, and containerd with dependencies (if configured)
-# 🟢 Builtin default: /usr/local
-guestInstallPrefix: null
-
-# When the "plain" mode is enabled:
-# - the YAML properties for mounts, port forwarding, containerd, etc. will be ignored
-# - guest agent will not be running
-# - dependency packages like sshfs will not be installed into the VM
-# User-specified provisioning scripts will be still executed.
-# 🟢 Builtin default: false
-plain: null
-
-# When the "nestedVirtualization" feature is enabled:
-# - Allows running a VM inside the guest VM.
-# - The guest VM must configure QEMU with the `-cpu host` parameters to run a nested VM:
-#   qemu-system-aarch64 -accel kvm -cpu host -M virt
-# - Without specifying `-cpu host`, nested virtualization may fail with the error:
-#   qemu-system-aarch64: kvm_init_vcpu: kvm_arch_init_vcpu failed (0): Invalid argument
-# - Only supported on Apple M3 or later with `vmType: vz` or `vmType: krunkit`.
-# 🟢 Builtin default: false
 nestedVirtualization: true
 
 # ===================================================================== #
