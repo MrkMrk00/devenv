@@ -6,38 +6,11 @@ disk: null
 
 mounts: []
 
-additionalDisks:
-# disks should either be a list of disk name strings, for example:
-# - "data"
-# or a list of disk objects with extra parameters, for example:
-# - name: "data"
-#   format: true
-#   fsType: "ext4"
-
 ssh:
-  # A localhost port of the host. Forwarded to port 22 of the guest.
-  # 🟢 Builtin default: 0 (automatically assigned to a free port)
-  localPort: null
-  # Load ~/.ssh/*.pub in addition to $LIMA_HOME/_config/user.pub .
-  # This option is useful when you want to use other SSH-based
-  # applications such as rsync with the Lima instance.
-  # If you have an insecure key under ~/.ssh, do not use this option.
-  # 🟢 Builtin default: false (since Lima v1.0)
-  loadDotSSHPubKeys: null
-  # Forward ssh agent into the instance.
-  # The ssh agent socket can be mounted in a container at the path `/run/host-services/ssh-auth.sock`.
-  # Set the environment variable `SSH_AUTH_SOCK` value to the path above.
-  # The socket is accessible by the non-root user inside the Lima instance.
-  # 🟢 Builtin default: false
-  forwardAgent: null
-  # Forward X11 into the instance
-  # 🟢 Builtin default: false
-  forwardX11: null
-  # Trust forwarded X11 clients
-  # 🟢 Builtin default: false
-  forwardX11Trusted: null
-  # Enable SSH over vsock.
-  # 🟢 Builtin default: true for vz with Linux guests, false otherwise
+  loadDotSSHPubKeys: false
+  forwardAgent: false
+  forwardX11: false
+  forwardX11Trusted: false
   overVsock: null
 
 upgradePackages: true
@@ -46,19 +19,8 @@ containerd:
   system: false
   user: false
 
-
-# A list of trusted CA certificate files. The files will be read and passed to cloud-init.
-# Provisioning scripts need to be idempotent because they might be called
-# multiple times, e.g. when the host VM is being restarted.
-# The scripts can use the following template variables: {{.Home}}, {{.Name}}, {{.Hostname}}, {{.UID}}, {{.User}}, and {{.Param.Key}}.
-#
-# EXPERIMENTAL Alternatively the script can be provided using the "file" property. This file is read when the instance
-# is created and then stored under the "script" property. When "file" is specified "script" must be empty.
-# The "file" property can either be a string (URL), or an object with a "url" and "digest" properties.
-# The "digest" property is currently unused.
-# Relative script files will be resolved relative to the location of the template file.
-# 🟢 Builtin default: []
 provision:
+  # Common tools
   - mode: system
     script: |
       #!/bin/bash
@@ -67,38 +29,107 @@ provision:
 
       apt-get update
       apt-get install --no-install-recommends -y \
-        git curl vim ca-certificates sudo xz-utils \
-        zsh stow fzf zoxide ripgrep unzip
+        git stow curl vim ca-certificates sudo xz-utils unzip
 
-      install -m 0755 -d /etc/apt/keyrings
-      curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-      chmod a+r /etc/apt/keyrings/docker.asc
+  # Docker apt repository GPG key
+  - mode: data
+    path: /etc/apt/keyrings
+    permissions: 755
+    overwrite: true
+    content: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
 
-      ARCH="$(dpkg --print-architecture)"
-      RELEASE="$(. /etc/os-release && echo "$VERSION_CODENAME")"
-      echo "deb [arch=${ARCH} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${RELEASE} stable" \
-        > /etc/apt/sources.list.d/docker.list
+      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
+      YT90qFF93M3v01BbxP+EIY2/9tiIPbrd
+      =0YYh
+      -----END PGP PUBLIC KEY BLOCK-----
+
+  # Install docker
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -euxo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+
+      if [[ -f /etc/lima-devenv/provisioned ]]; then exit 0; fi
+
+      cat /etc/apt/sources.list.d/docker.sources <<EOF
+      Types: deb
+      URIs: https://download.docker.com/linux/debian
+      Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+      Components: stable
+      Architectures: $(dpkg --print-architecture)
+      Signed-By: /etc/apt/keyrings/docker.asc
+      EOF
 
       apt-get update
       apt-get install --no-install-recommends -y \
         docker-ce docker-ce-cli containerd.io \
         docker-buildx-plugin docker-compose-plugin
 
-
+  # Install nix and shit
   - mode: user
     script: |
       #!/bin/bash
       set -euxo pipefail
 
       cd
-      if ! [[ -d "./dotfiles" ]]; then
-        git clone https://github.com/MrkMrk00/dotfiles --depth=1
-        rm -f ~/.zshrc ~/.bashrc
-        pushd dotfiles
-          stow .
-        popd
-      fi
-
       if ! [[ -d "./devenv" ]]; then
         git clone https://github.com/MrkMrk00/devenv
       else
@@ -112,13 +143,27 @@ provision:
         sh <(curl -L https://nixos.org/nix/install) --daemon --yes
         sudo mkdir -p /etc/nix
         echo "experimental-features = nix-command flakes" | sudo tee /etc/nix/nix.conf
+
+        echo 'PATH="$PATH:/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin"' >> ~/.profile
+        echo 'source .profile' >> .bashrc
+
+        . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+        nix profile install ~/devenv
       fi
 
-      . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-      nix profile install ~/devenv
+      if ! [[ -d "./dotfiles" ]]; then
+        git clone https://github.com/MrkMrk00/dotfiles --depth=1
+        rm -f ~/.zshrc ~/.bashrc
+        pushd dotfiles
+          stow .
+        popd
+      fi
 
+      if [[ -f /etc/lima-devenv/provisioned ]]; then exit 0; fi
       sudo usermod -aG docker "$(whoami)"
-      sudo chsh -s /usr/bin/zsh "$(whoami)"
+
+      sudo mkdir -p /etc/lima-devenv/
+      echo '1' | sudo tee /etc/lima-devenv/provisioned
 
 # # `boot` is executed directly by /bin/sh as part of cloud-init-local.service's early boot process,
 # # which is why there is no hash-bang specified in the example
@@ -237,36 +282,14 @@ provision:
 # 🔵 This file: "1.1.0" to use the `base` templating mechanism
 minimumLimaVersion: 2.0.0
 
-# EXPERIMENTAL
-# Default settings can be imported from base templates. These will be merged in when the instance
-# is created, and the combined template is stored in the instance directory.
-# This setting can be either a single string (URL), or a list of locators.
-# A locator is again either a string (URL), or an object with "url" and "digest" properties, e.g.
-# base: [{url: ./base.yaml, digest: decafbad}, …]
-# The "digest" property is currently unused.
-# Any relative base template name will be resolved relative to the location of the main template.
-# 🟢 Builtin default: no base template
-# 🔵 This file: Ubuntu images and default mount points
 base:
-- template:_images/ubuntu-24.04
+- template:_images/debian-13
 
-# User to be used inside the VM
 user:
-  # User name. An explicitly specified username is not validated by Lima.
-  # 🟢 Builtin default: same as the host username, if it is a valid Linux username, otherwise "lima"
   name: null
-  # Full name or display name of the user.
-  # 🟢 Builtin default: user information from the host
   comment: null
-  # Numeric user id. It is not currently possible to specify a group id.
-  # 🟢 Builtin default: same as the host user id of the current user (NOT a lookup of the specified "username").
   uid: null
-  # Home directory inside the VM, NOT the mounted home directory of the host.
-  # It can use the following template variables: {{.Name}}, {{.Hostname}}, {{.UID}}, {{.User}}, and {{.Param.Key}}.
-  # 🟢 Builtin default: "/home/{{.User}}.guest" (Also accessible as "/home/{{.User}}.linux")
   home: "/home/{{.User}}"
-  # Shell. Needs to be an absolute path.
-  # 🟢 Builtin default: "/bin/bash"
   shell: null
 
 vmOpts:
@@ -281,7 +304,7 @@ vmOpts:
     # 🟢 Builtin default: hard-coded arch map with type (see the output of `limactl info | jq .defaultTemplate.cpuType`)
     cpuType:
       x86_64: "host"
-    #   aarch64: "max" # (or "host" when running on aarch64 host)
+      aarch64: "host"
     #   armv7l:  "max" # (or "host" when running on armv7l host)
     #   riscv64: "max" # (or "host" when running on riscv64 host)
     #   x86_64:  "max" # (or "host" when running on x86_64 host; additional options are appended on Intel Mac)
@@ -301,34 +324,7 @@ vmOpts:
       binfmt: null
 
 # OS: "Linux".
-# 🟢 Builtin default: "Linux"
 os: null
-
-# DEPRECATED: Use vmOpts.qemu.cpuType instead. See the vmOpts.qemu.cpuType section above for configuration.
-cpuType:
-
-# DEPRECATED: Use vmOpts.vz.rosetta instead. See the vmOpts.qemu.cpuType section above for configuration.
-rosetta:
-  enabled: null
-  binfmt: null
-
-# Specify the timezone name (as used by the zoneinfo database). Specify the empty string
-# to not set a timezone in the instance.
-# 🟢 Builtin default: use name from /etc/timezone or deduce from symlink target of /etc/localtime
-timezone: null
-
-firmware:
-  # Use legacy BIOS instead of UEFI. Ignored for aarch64 and vz.
-  # 🟢 Builtin default: false
-  legacyBIOS: null
-#  # Override UEFI images
-#  # 🟢 Builtin default: uses VM's default UEFI, except for qemu + aarch64.
-#  # See <https://lists.gnu.org/archive/html/qemu-devel/2023-12/msg01694.html>
-#  images:
-#  - location: "~/Downloads/edk2-aarch64-code.fd.gz"
-#    arch: "aarch64"
-#    digest: "sha256:..."
-#    vmType: "qemu"
 
 audio:
   # EXPERIMENTAL

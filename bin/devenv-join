@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ssh_rest_args=''
+machine_name=''
+forward_agent=1
+debug=0
+
+while [[ -n "${1:-}" ]]; do
+    case "$1" in
+        '--no-agent')
+            forward_agent=0
+            ;;
+        '--debug'|'-d')
+            debug=1
+            ;;
+        *)
+            if [[ -n "$machine_name" ]]; then
+                echo "unexpected argument \"$1\"" >&2
+                exit 1
+            fi
+            machine_name="$1"
+            ;;
+    esac
+
+    shift 1
+done
+
+forward_gpg_agent() {
+    local machine_name="$1"
+    if ! type gpg-agent 2>&1 >/dev/null; then
+        echo 'gpg-agent is not installed, not forwarding its socket'
+        return 0
+    fi
+
+    # start agent if not running
+    if ! pgrep gpg-agent >/dev/null; then
+        ((debug)) && echo 'starting gpg-agent'
+
+        gpg-connect-agent reloadagent /bye
+    fi
+
+    local guest_socket="/run/user/$(id -u)/gnupg/S.gpg-agent"
+    local local_socket=$(gpgconf --list-dirs agent-extra-socket)
+
+    # clean up old socket in guest
+    limactl shell "$machine_name" sh -c "test -f $guest_socket && rm $guest_socket" || true
+
+    # import public GPG keys (you need to have them installed locally
+    # to be usable to sign with the private keys though the agent)
+    gpg --export | limactl shell "$machine_name" gpg --import --quiet
+
+    ssh_rest_args="$ssh_rest_args -o StreamLocalBindUnlink=yes -R $guest_socket:$local_socket"
+
+    return 0
+}
+
+if [[ -z "$machine_name" ]]; then
+    echo 'provide the name of the machine' >&2
+    return 1
+fi
+
+machine_status=$(limactl ls "$machine_name" --json | jq -r '.status')
+if [[ "$machine_status" != "Running" ]]; then
+    ((debug)) && echo "machine \"$machine_name\" is not running, starting..."
+    limactl start "$machine_name"
+fi
+
+if (($forward_agent == 1)); then
+    ssh_rest_args="$ssh_rest_args -A"
+    forward_gpg_agent "$machine_name"
+fi
+
+ssh_config_path=$(limactl ls --format='{{.SSHConfigFile}}' "$machine_name")
+
+((debug)) && echo "ssh_rest_args=\"$ssh_rest_args\""
+((debug)) && echo "ssh_config_path=\"$ssh_config_path\""
+((debug)) && echo "machine_name=\"$machine_name\""
+
+kitten ssh -F "$ssh_config_path" $ssh_rest_args "lima-$machine_name"

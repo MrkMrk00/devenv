@@ -20,16 +20,23 @@
         {
           default = pkgs.buildEnv {
             name = "devenv-tools";
-            paths = [
-              pkgs.neovim
-              pkgs.tree-sitter
-              pkgs.fnm
-              pkgs.kubectl
-              pkgs.kustomize
-              pkgs.kubernetes-helm
-              pkgs.helmfile
-              pkgs.k3d
-              pkgs.opencode
+            paths = with pkgs; [
+              neovim
+              fzf
+              zoxide
+              tree-sitter
+              opencode
+              ripgrep
+
+              fnm
+
+              asdf-vm
+              awscli2
+              kubectl
+              kustomize
+              kubernetes-helm
+              helmfile
+              k3d
             ];
           };
         }
