@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+image='docker.io/docker/sandbox-templates:opencode'
+docker_volume_name='opencode-sandbox'
+workdir="${1:-$(pwd)}"
+
+create_volume() {
+    if ! docker volume ls --format=json \
+        | jq -re "select(.Name == \"$docker_volume_name\")" \
+        >/dev/null
+    then
+        docker volume create "$docker_volume_name"
+    fi
+
+    docker run -v "$docker_volume_name:/vol" --rm -it alpine:3.22 sh -c '
+        mkdir -p /vol/.config/opencode
+        mkdir -p /vol/.local/share/opencode
+        mkdir -p /vol/.local/state/opencode
+    '
+}
+
+create_volume
+sandbox_home='/home/agent'
+workspace_name=$(basename "$workdir")
+
+docker run --rm -it \
+    --volume  "$workdir:$sandbox_home/$workspace_name" \
+    --workdir "$sandbox_home/$workspace_name"          \
+    --mount   type=volume,src=$docker_volume_name,dst=$sandbox_home/.config/opencode,volume-subpath=.config/opencode  \
+    --mount   type=volume,src=$docker_volume_name,dst=$sandbox_home/.local/share/opencode,volume-subpath=.local/share/opencode \
+    --mount   type=volume,src=$docker_volume_name,dst=$sandbox_home/.local/state/opencode,volume-subpath=.local/state/opencode \
+    "$image"

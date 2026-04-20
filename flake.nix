@@ -25,7 +25,6 @@
               fzf
               zoxide
               tree-sitter
-              opencode
               ripgrep
 
               fnm
