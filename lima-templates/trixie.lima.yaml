@@ -29,11 +29,12 @@ provision:
 
       apt-get update
       apt-get install --no-install-recommends -y \
-        git stow curl vim ca-certificates sudo xz-utils unzip
+        git stow curl vim ca-certificates sudo xz-utils unzip build-essential \
+        gnupg gpg-agent
 
   # Docker apt repository GPG key
   - mode: data
-    path: /etc/apt/keyrings
+    path: /etc/apt/keyrings/docker.asc
     permissions: 755
     overwrite: true
     content: |
@@ -109,7 +110,7 @@ provision:
 
       if [[ -f /etc/lima-devenv/provisioned ]]; then exit 0; fi
 
-      cat /etc/apt/sources.list.d/docker.sources <<EOF
+      tee /etc/apt/sources.list.d/docker.sources <<EOF
       Types: deb
       URIs: https://download.docker.com/linux/debian
       Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
