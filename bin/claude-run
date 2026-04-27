@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+COMPOSE_DIR="$(dirname "$0")/../ai"
+
+docker compose -f "$COMPOSE_DIR/compose.yaml" up -d opencode-meridian --quiet-pull 2>/dev/null
+
+docker exec -it opencode-meridian \
+    sh -c "node \"\$(npm root -g)/@anthropic-ai/claude-agent-sdk/cli.js\" $@"
