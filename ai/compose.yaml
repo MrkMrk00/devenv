@@ -1,0 +1,44 @@
+services:
+  opencode-meridian:
+    container_name: "opencode-meridian"
+    restart: unless-stopped
+    volumes:
+      - claude-config:/mnt/claude
+    ports:
+      - 3456:3456
+    networks:
+      - opencode-sandbox
+    build:
+      context: .
+      dockerfile: meridian.Dockerfile
+    environment:
+      - CLAUDE_PROXY_PASSTHROUGH=1
+      - IS_SANDBOX=1
+
+  opencode-tui:
+    # No container_name — allows parallel `docker compose run` instances
+    tty: true
+    stdin_open: true
+    networks:
+      - opencode-sandbox
+    volumes:
+      - opencode-config:/home/agent/.config/opencode
+      - opencode-data:/home/agent/.local/share/opencode
+      - opencode-state:/home/agent/.local/state/opencode
+      - ${HOST_CWD:-.}:/home/agent/app
+    build:
+      context: .
+      dockerfile: opencode.Dockerfile
+    environment:
+      - ANTHROPIC_API_KEY=x
+      - ANTHROPIC_BASE_URL=http://opencode-meridian:3456
+
+volumes:
+  claude-config:
+  opencode-config:
+  opencode-data:
+  opencode-state:
+
+networks:
+  opencode-sandbox:
+    driver: bridge
