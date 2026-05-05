@@ -2,9 +2,14 @@ FROM debian:trixie
 
 ARG TARGETARCH
 
-ARG OPENCODE_VERSION=1.2.23
-ARG OPENCODE_SHA256_AMD64="a7504c0713d6c3805a729fb6f4ab345521b0621d53f6d803feec1579f2ec2995"
-ARG OPENCODE_SHA256_ARM64="f2c04581942a803a7ba8da80c7c83e0ff628ef3c0869b702568eece713f20b55"
+# ARG OPENCODE_VERSION=1.2.23
+# ARG OPENCODE_SHA256_AMD64="a7504c0713d6c3805a729fb6f4ab345521b0621d53f6d803feec1579f2ec2995"
+# ARG OPENCODE_SHA256_ARM64="f2c04581942a803a7ba8da80c7c83e0ff628ef3c0869b702568eece713f20b55"
+
+ARG OPENCODE_VERSION=1.4.9
+ARG OPENCODE_SHA256_AMD64="9024f8473e5df73e4bf75dc03f8cb4f53f162d3440e339e55df504d4a64f08b1"
+ARG OPENCODE_SHA256_ARM64="ba377089eb7ed3e32ff0279c3545ec9e29c7184e486f736a0b2f66c8904c449b"
+
 
 ARG FNM_VERSION=1.39.0
 ARG FNM_SHA256_AMD64="7807664f39d39fc518da1c35ba0181e4b3267603c4b1dedeb4b5fc6ae440a224"
@@ -15,7 +20,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get upgrade -y --no-install-recommends
 RUN apt-get install -y --no-install-recommends \
-    git curl jq gzip unzip ca-certificates
+    git curl jq gzip unzip ca-certificates sudo
 
 RUN <<EOF
 #!/usr/bin/bash
@@ -85,6 +90,9 @@ for pid in "${pids[@]}"; do wait "$pid"; done
 EOF
 
 RUN groupadd -g 1000 agent && useradd -u 1000 -g agent -m -s /bin/bash agent
+
+RUN echo 'agent ALL=(ALL) NOPASSWD: /usr/bin/apt install *' > /etc/sudoers.d/agent-apt-install
+RUN echo 'agent ALL=(ALL) NOPASSWD: /usr/bin/apt remove *' >> /etc/sudoers.d/agent-apt-install
 
 RUN mkdir -p /home/agent/.config/opencode
 RUN mkdir -p /home/agent/.local/share/opencode

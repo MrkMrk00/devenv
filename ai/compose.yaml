@@ -33,6 +33,18 @@ services:
       - ANTHROPIC_API_KEY=x
       - ANTHROPIC_BASE_URL=http://opencode-meridian:3456
 
+  grafana-mcp:
+    container_name: grafana-mcp
+    image: grafana/mcp-grafana
+    restart: unless-stopped
+    ports:
+      - 8000:8000
+    networks:
+      - opencode-sandbox
+    environment:
+      - GRAFANA_URL=${GRAFANA_URL}
+      - GRAFANA_SERVICE_ACCOUNT_TOKEN=${GRAFANA_SERVICE_ACCOUNT_TOKEN}
+
 volumes:
   claude-config:
   opencode-config:

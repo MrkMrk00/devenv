@@ -3,6 +3,14 @@
 set -euo pipefail
 
 COMPOSE_DIR="$(dirname "$0")/../ai"
-docker compose -f "$COMPOSE_DIR/compose.yaml" up -d opencode-meridian --quiet-pull 2>/dev/null
+
+function run_service_in_background() {
+    local service_name="$1"
+
+    docker compose -f "$COMPOSE_DIR/compose.yaml" up -d "$service_name" --quiet-pull 2>/dev/null
+}
+
+run_service_in_background "opencode-meridian"
+run_service_in_background "grafana-mcp"
 
 HOST_CWD="$(pwd)" exec docker compose -f "$COMPOSE_DIR/compose.yaml" run --rm opencode-tui opencode "$@"
