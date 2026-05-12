@@ -2,7 +2,32 @@
 
 set -euo pipefail
 
-COMPOSE_DIR="$(dirname "$0")/../ai"
+DEVENV_DIR="$(dirname "$0")/.."
+COMPOSE_DIR="$DEVENV_DIR/ai"
+
+function update_agent_skills() {
+    if ! [[ -d "$DEVENV_DIR/skills" ]]; then
+        return
+    fi
+
+    local image_id=$(docker compose -f "$COMPOSE_DIR/compose.yaml" run -d --rm opencode-tui)
+    docker exec "$image_id" bash -lc 'test -d "$HOME/.local/config/opencode/skills" || mkdir -p "$HOME/.local/config/opencode/skills"' || true
+
+    for skill_repo in $DEVENV_DIR/skills/*; do
+        pushd "$skill_repo"
+        git fetch origin HEAD
+        git reset --hard FETCH_HEAD
+
+        for skill in ./skills/*; do
+            skill_name=$(basename "$skill")
+
+            docker cp "$skill" "$image_id:/home/agent/.config/opencode/skills/$skill_name"
+        done
+        popd
+    done
+
+    docker kill "$image_id"
+}
 
 function run_service_in_background() {
     local service_name="$1"
@@ -10,7 +35,36 @@ function run_service_in_background() {
     docker compose -f "$COMPOSE_DIR/compose.yaml" up -d "$service_name" --quiet-pull 2>/dev/null
 }
 
+if [[ "${1:-}" == 'update' ]]; then
+    docker compose -f "$COMPOSE_DIR/compose.yaml" build opencode-tui
+    update_agent_skills
+
+    exit 0
+fi
+
+opencode_config=$(cat << 'EOF'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "grafana": {
+      "type": "remote",
+      "enabled": true,
+      "url": "http://grafana-mcp:8000/sse"
+    },
+    "apify": {
+      "type": "remote",
+      "enabled": true,
+      "url": "https://mcp.apify.com/?tools=docs"
+    }
+  }
+}
+EOF
+)
+
 run_service_in_background "opencode-meridian"
 run_service_in_background "grafana-mcp"
 
-HOST_CWD="$(pwd)" exec docker compose -f "$COMPOSE_DIR/compose.yaml" run --rm opencode-tui opencode "$@"
+HOST_CWD="$(pwd)" exec docker compose -f "$COMPOSE_DIR/compose.yaml" run \
+    --rm \
+    -e OPENCODE_CONFIG_CONTENT="$opencode_config" \
+    opencode-tui

@@ -2,3 +2,4 @@
 *.qcow2
 /images/
 __pycache__
+/skills/
