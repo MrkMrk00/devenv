@@ -42,9 +42,16 @@ if [[ "${1:-}" == 'update' ]]; then
     exit 0
 fi
 
-opencode_config=$(cat << 'EOF'
+[[ -f "$COMPOSE_DIR/.env" ]] && source "$COMPOSE_DIR/.env" || true
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    github_enabled='true'
+else
+    github_enabled='false'
+fi
+
+opencode_config=$(cat << EOF
 {
-  "$schema": "https://opencode.ai/config.json",
+  "\$schema": "https://opencode.ai/config.json",
   "mcp": {
     "grafana": {
       "type": "remote",
@@ -55,6 +62,14 @@ opencode_config=$(cat << 'EOF'
       "type": "remote",
       "enabled": true,
       "url": "https://mcp.apify.com/?tools=docs"
+    },
+    "github": {
+      "type": "remote",
+      "enabled": $github_enabled,
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_TOKEN}"
+      }
     }
   }
 }
@@ -67,4 +82,5 @@ run_service_in_background "grafana-mcp"
 HOST_CWD="$(pwd)" exec docker compose -f "$COMPOSE_DIR/compose.yaml" run \
     --rm \
     -e OPENCODE_CONFIG_CONTENT="$opencode_config" \
+    -e GITHUB_TOKEN="${GITHUB_TOKEN:-}" \
     opencode-tui
