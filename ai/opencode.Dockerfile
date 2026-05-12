@@ -2,10 +2,6 @@ FROM debian:trixie
 
 ARG TARGETARCH
 
-# ARG OPENCODE_VERSION=1.2.23
-# ARG OPENCODE_SHA256_AMD64="a7504c0713d6c3805a729fb6f4ab345521b0621d53f6d803feec1579f2ec2995"
-# ARG OPENCODE_SHA256_ARM64="f2c04581942a803a7ba8da80c7c83e0ff628ef3c0869b702568eece713f20b55"
-
 ARG OPENCODE_VERSION=1.4.9
 ARG OPENCODE_SHA256_AMD64="9024f8473e5df73e4bf75dc03f8cb4f53f162d3440e339e55df504d4a64f08b1"
 ARG OPENCODE_SHA256_ARM64="ba377089eb7ed3e32ff0279c3545ec9e29c7184e486f736a0b2f66c8904c449b"
@@ -103,9 +99,9 @@ RUN chown -R agent:agent /home/agent
 WORKDIR /home/agent/app
 USER agent
 
-RUN echo 'eval $(fnm env --shell bash)' >> /home/agent/.bashrc
+RUN echo 'eval $(fnm env --shell bash)' >> /home/agent/.profile
 RUN fnm install 24
 
-ENV PATH="/home/agent/.local/bin:${PATH}"
+ENTRYPOINT ["/bin/bash", "-l", "-c"]
 
-CMD ["/usr/local/bin/opencode"]
+CMD ["exec /usr/local/bin/opencode"]
