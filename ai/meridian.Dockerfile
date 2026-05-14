@@ -2,7 +2,7 @@ FROM node:24-trixie-slim
 
 ARG MERIDIAN_PORT=3456
 
-ARG MERIDIAN_VERSION=1.38.0
+ARG MERIDIAN_VERSION=1.42.1
 
 # Install Meridian and the Claude Agent SDK (pinned to 0.2.90 which still
 # ships cli.js — removed in later versions). The SDK's cli.js replaces
