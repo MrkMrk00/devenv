@@ -14,8 +14,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update
 RUN apt-get upgrade -y --no-install-recommends
-RUN apt-get install -y --no-install-recommends \
-    git curl jq gzip unzip ca-certificates sudo
+RUN apt-get install -y --no-install-recommends           \
+    git curl jq gzip unzip ca-certificates opendoas less \
+    build-essential iputils-ping tree                    \
+    python3 python3-pip python3-venv                     \
+    ripgrep dnsutils net-tools
 
 RUN <<EOF
 #!/usr/bin/bash
@@ -86,8 +89,12 @@ EOF
 
 RUN groupadd -g 1000 agent && useradd -u 1000 -g agent -m -s /bin/bash agent
 
-RUN echo 'agent ALL=(ALL) NOPASSWD: /usr/bin/apt install *' > /etc/sudoers.d/agent-apt-install
-RUN echo 'agent ALL=(ALL) NOPASSWD: /usr/bin/apt remove *' >> /etc/sudoers.d/agent-apt-install
+RUN touch /etc/doas.conf && chmod 600 /etc/doas.conf
+RUN ln -sf /usr/bin/doas /usr/local/bin/sudo
+
+RUN cat <<EOF > /etc/doas.conf
+permit nopass agent as root cmd apt
+EOF
 
 RUN mkdir -p /home/agent/.config/opencode
 RUN mkdir -p /home/agent/.local/share/opencode
